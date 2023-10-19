@@ -178,19 +178,19 @@ void printArr(const T arrToPrint[], size_t arrLen) {
 
 
 std::vector<Vertex> retractLoop(const Graph& G, size_t outputCounter[]) {
-    std::deque<std::vector<Vertex>> vertexQueue;
+    std::vector<Vertex> currentLoop;
+    std::deque<Vertex> vertexQueue;
     size_t vertexNum = G.vertices();
 
     for (size_t i=0; i<vertexNum; i++) {
         if (outputCounter[i] != 0) {
-            vertexQueue.push_front({Vertex(i)});
+            vertexQueue.push_front(Vertex(i));
         }
     }
 
     while (!vertexQueue.empty()) {
-        auto currentLoop = vertexQueue.front();
+        Vertex currentVertex = vertexQueue.front();
         vertexQueue.pop_front();
-        Vertex currentVertex = currentLoop[currentLoop.size()-1];
         outputCounter[currentVertex] = 0;
 
         for (auto neighbourVertex: G[currentVertex]) {

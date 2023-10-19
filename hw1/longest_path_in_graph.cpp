@@ -38,9 +38,129 @@ struct Path {
 
 #endif
 
+std::ostream& operator << (std::ostream& out, const Path& p) {
+    out << "from: " << p.from << " to: " << p.to << " length: " << p.length;
+    return out;
+}
+
+using namespace std;
+
+template <typename T>
+void printVector(std::vector<T> vecToPrint) {
+    std::cout << "{ ";
+    for (int i=0; i<vecToPrint.size(); i++) {
+        std::cout << vecToPrint[i] << ", ";
+    }
+    std::cout<< "}" << std::endl;
+}
+
+
+void topsort(const vector<vector<Path>> &graphPaths, std::vector<Point> &topologicalSort,
+             vector<long> &distances, vector<Path> &previousPaths) {
+    queue<Point> nextVertex;
+    size_t vertexNum = graphPaths.size();
+
+    // we fill our outputCounter with the number all edges that lead to that vertex
+    size_t outputCounter [vertexNum];
+
+    for (int i=0; i<vertexNum; i++) {
+        outputCounter[i] = 0;
+    }
+
+    for (const auto& pathGroup: graphPaths) {
+        for (Path vertexPath: pathGroup) {
+            outputCounter[vertexPath.to]++;
+        }
+    }
+
+    distances.resize(vertexNum);
+    previousPaths.reserve(vertexNum);
+
+    // all vertexes that don't have an edge leading to it are pushed to queue (they're the first in topological order)
+    for (int i=0; i<vertexNum; i++) {
+        if (outputCounter[i] == 0) {
+            nextVertex.push(Point(i));
+            distances[i] = 0;
+        }
+        else {
+            distances[i] = INT_MIN;
+        }
+        previousPaths.emplace_back(0, 0, 0);
+    }
+
+    // main loop, find out if there's a cycle or not
+    while (!nextVertex.empty()) {
+        Point curVertex = nextVertex.front();
+        nextVertex.pop();
+
+        topologicalSort.push_back(curVertex);
+
+        for (Path pathGroup: graphPaths[curVertex]) {
+            outputCounter[pathGroup.to]--;
+            if (outputCounter[pathGroup.to] == 0) {
+                nextVertex.push(pathGroup.to);
+            }
+        }
+    }
+}
+
+
+void convertPathToGraph(const std::vector<Path>& all_paths, size_t maxVertices, vector<vector<Path>> &graphPaths) {
+    // { {PATH1, PATH2}, {PATH3}, ... }
+    for (int i=0; i<maxVertices; i++) {
+        graphPaths.emplace_back();
+    }
+
+    for (auto path: all_paths) {
+//        cout << "path.from: " << path.from << endl;
+        graphPaths[path.from];
+        graphPaths[path.from].push_back(path);
+    }
+}
+
 
 std::vector<Path> longest_track(size_t points, const std::vector<Path>& all_paths) {
-    return all_paths;
+    vector<vector<Path>> graphPaths;
+    vector<Point> topologicalSort;
+
+    convertPathToGraph(all_paths, points, graphPaths);
+    vector<long> distances;
+    vector<Path> previousPaths;
+
+    topsort(graphPaths, topologicalSort, distances, previousPaths);
+
+    for (Point vertex: topologicalSort) {
+        for (Path vertexPath: graphPaths[vertex]) {
+            if (distances[vertex] + vertexPath.length > distances[vertexPath.to]) {
+                distances[vertexPath.to] = distances[vertex] + vertexPath.length;
+                previousPaths[vertexPath.to] = vertexPath;
+            }
+        }
+    }
+
+    long maxDistance = -1000;
+    int maxDistanceIndex;
+
+    for (int i=0; i<distances.size(); i++) {
+        if (distances[i] > maxDistance) {
+            maxDistance = distances[i];
+            maxDistanceIndex = i;
+        }
+    }
+
+    vector<Path> finalResult;
+    int currentIndex = maxDistanceIndex;
+    while (true) {
+        if (distances[currentIndex] == 0) {
+            break;
+        }
+        finalResult.push_back(previousPaths[currentIndex]);
+        currentIndex = previousPaths[currentIndex].from;
+    }
+
+    reverse(finalResult.begin(), finalResult.end());
+
+    return finalResult;
 };
 
 
