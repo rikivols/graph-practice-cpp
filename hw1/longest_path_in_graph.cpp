@@ -48,7 +48,7 @@ using namespace std;
 template <typename T>
 void printVector(std::vector<T> vecToPrint) {
     std::cout << "{ ";
-    for (int i=0; i<vecToPrint.size(); i++) {
+    for (size_t i=0; i<vecToPrint.size(); i++) {
         std::cout << vecToPrint[i] << ", ";
     }
     std::cout<< "}" << std::endl;
@@ -57,13 +57,17 @@ void printVector(std::vector<T> vecToPrint) {
 
 void topsort(const vector<vector<Path>> &graphPaths, std::vector<Point> &topologicalSort,
              vector<long> &distances, vector<Path> &previousPaths) {
+    /*
+     * Generate topsort order. Fill distances with negative infinity and first nodes in top. order with zero.
+     */
+
     queue<Point> nextVertex;
     size_t vertexNum = graphPaths.size();
 
     // we fill our outputCounter with the number all edges that lead to that vertex
-    size_t outputCounter [vertexNum];
+    vector<size_t> outputCounter(vertexNum, 0);
 
-    for (int i=0; i<vertexNum; i++) {
+    for (size_t i=0; i<vertexNum; i++) {
         outputCounter[i] = 0;
     }
 
@@ -77,7 +81,7 @@ void topsort(const vector<vector<Path>> &graphPaths, std::vector<Point> &topolog
     previousPaths.reserve(vertexNum);
 
     // all vertexes that don't have an edge leading to it are pushed to queue (they're the first in topological order)
-    for (int i=0; i<vertexNum; i++) {
+    for (size_t i=0; i<vertexNum; i++) {
         if (outputCounter[i] == 0) {
             nextVertex.push(Point(i));
             distances[i] = 0;
@@ -106,16 +110,67 @@ void topsort(const vector<vector<Path>> &graphPaths, std::vector<Point> &topolog
 
 
 void convertPathToGraph(const std::vector<Path>& all_paths, size_t maxVertices, vector<vector<Path>> &graphPaths) {
-    // { {PATH1, PATH2}, {PATH3}, ... }
-    for (int i=0; i<maxVertices; i++) {
+    /*
+     * Converts paths (Path1, Path2...) to a graph, where each path is stored at a vector's position from
+     * which it originates (from).
+     *
+     * { {PATH1, PATH2}, {PATH3}, {}, ... }
+     */
+
+    for (size_t i=0; i<maxVertices; i++) {
         graphPaths.emplace_back();
     }
 
     for (auto path: all_paths) {
-//        cout << "path.from: " << path.from << endl;
-        graphPaths[path.from];
         graphPaths[path.from].push_back(path);
     }
+}
+
+
+void storeDistances(const vector<Point> &topologicalSort, const vector<vector<Path>> &graphPaths,
+                    vector<long> &distances, vector<Path> &previousPaths) {
+    /*
+     * Pre-calculate longest distance for each vertex (how much it takes to get to it)
+     */
+
+    for (Point vertex: topologicalSort) {
+        for (Path vertexPath: graphPaths[vertex]) {
+            if (distances[vertex] + vertexPath.length > distances[vertexPath.to]) {
+                distances[vertexPath.to] = distances[vertex] + vertexPath.length;
+                previousPaths[vertexPath.to] = vertexPath;
+            }
+        }
+    }
+}
+
+
+void reconstructLongestPath(const vector<long> &distances, const vector<Path> &previousPaths,
+                            vector<Path> &finalResult) {
+    /*
+     * Reconstruct the longest path from the pre-calculated distances and stored longest paths
+     * for each vertex.
+     */
+
+    long maxDistance = -1000;
+    int maxDistanceIndex = -1;
+
+    for (int i=0; i<(int)distances.size(); i++) {
+        if (distances[i] > maxDistance) {
+            maxDistance = distances[i];
+            maxDistanceIndex = i;
+        }
+    }
+
+    int currentIndex = maxDistanceIndex;
+    while (true) {
+        if (distances[currentIndex] == 0) {
+            break;
+        }
+        finalResult.push_back(previousPaths[currentIndex]);
+        currentIndex = previousPaths[currentIndex].from;
+    }
+
+    reverse(finalResult.begin(), finalResult.end());
 }
 
 
@@ -129,36 +184,11 @@ std::vector<Path> longest_track(size_t points, const std::vector<Path>& all_path
 
     topsort(graphPaths, topologicalSort, distances, previousPaths);
 
-    for (Point vertex: topologicalSort) {
-        for (Path vertexPath: graphPaths[vertex]) {
-            if (distances[vertex] + vertexPath.length > distances[vertexPath.to]) {
-                distances[vertexPath.to] = distances[vertex] + vertexPath.length;
-                previousPaths[vertexPath.to] = vertexPath;
-            }
-        }
-    }
-
-    long maxDistance = -1000;
-    int maxDistanceIndex;
-
-    for (int i=0; i<distances.size(); i++) {
-        if (distances[i] > maxDistance) {
-            maxDistance = distances[i];
-            maxDistanceIndex = i;
-        }
-    }
+    storeDistances(topologicalSort, graphPaths, distances, previousPaths);
 
     vector<Path> finalResult;
-    int currentIndex = maxDistanceIndex;
-    while (true) {
-        if (distances[currentIndex] == 0) {
-            break;
-        }
-        finalResult.push_back(previousPaths[currentIndex]);
-        currentIndex = previousPaths[currentIndex].from;
-    }
 
-    reverse(finalResult.begin(), finalResult.end());
+    reconstructLongestPath(distances, previousPaths, finalResult);
 
     return finalResult;
 };
