@@ -129,6 +129,8 @@ std::ostream& operator << (std::ostream& out, const Graph& G) {
 
 #endif
 
+using namespace std;
+
 template <typename T>
 void printVector(std::vector<T> vecToPrint) {
     std::cout << "{ ";
@@ -139,69 +141,43 @@ void printVector(std::vector<T> vecToPrint) {
 }
 
 
-template <typename T>
-void printArr(const T arrToPrint[], size_t arrLen) {
-    std::cout << "{ ";
-    for (int i=0; i<arrLen; i++) {
-        std::cout << arrToPrint[i] << ", ";
-    }
-    std::cout<< "}" << std::endl;
-}
-
-
-//std::vector<Vertex> doDfs(const Graph& G, size_t outputCounter[], Vertex startingVertex) {
-//
-//    std::deque<std::vector<Vertex>> vertexQueue;
-//    vertexQueue.push_front(startingVertex);
-//
-//    while (!vertexQueue.empty()) {
-//        auto currentLoop = vertexQueue.front();
-//        vertexQueue.pop_front();
-//        Vertex currentVertex = currentLoop[currentLoop.size()-1];
-//        outputCounter[currentVertex] = 0;
-//
-//        for (auto neighbourVertex: G[currentVertex]) {
-//            if (neighbourVertex == currentLoop[0]) {
-//                return currentLoop;
-//            }
-//
-//            if (outputCounter[neighbourVertex] != 0) {
-//                auto nextLoop = currentLoop;
-//                nextLoop.push_back(neighbourVertex);
-//                vertexQueue.push_front(nextLoop);
-//            }
-//        }
-//    }
-//
-//    return {};
-//}
-
-
-std::vector<Vertex> retractLoop(const Graph& G, size_t outputCounter[]) {
-    std::vector<Vertex> currentLoop;
-    std::deque<Vertex> vertexQueue;
+std::vector<Vertex> retractLoop(const Graph& G, vector<size_t> &outputCounter) {
+    deque<pair<Vertex, Vertex>> vertexQueue;
+    vector<int> storedPaths (G.vertices(), -1);
+    vector<Vertex> finalPath;
     size_t vertexNum = G.vertices();
 
     for (size_t i=0; i<vertexNum; i++) {
         if (outputCounter[i] != 0) {
-            vertexQueue.push_front(Vertex(i));
+            vertexQueue.push_front({Vertex(i), Vertex(i)});
         }
     }
 
     while (!vertexQueue.empty()) {
-        Vertex currentVertex = vertexQueue.front();
+        Vertex loopStartVertex = vertexQueue.front().first;
+        Vertex currentVertex = vertexQueue.front().second;
         vertexQueue.pop_front();
+        // don't visit again
         outputCounter[currentVertex] = 0;
 
         for (auto neighbourVertex: G[currentVertex]) {
-            if (neighbourVertex == currentLoop[0]) {
-                return currentLoop;
+
+            // we found the path, reconstruct, go from the most-child to the beginning of the loop
+            if (neighbourVertex == loopStartVertex) {
+                int lastPath = currentVertex;
+                while (lastPath != -1) {
+                    finalPath.push_back(Vertex(lastPath));
+                    // go back to the parent
+                    lastPath = storedPaths[lastPath];
+                }
+                reverse(finalPath.begin(), finalPath.end());
+                return finalPath;
             }
 
             if (outputCounter[neighbourVertex] != 0) {
-                currentLoop.push_back(neighbourVertex);
-                vertexQueue.push_front(currentLoop);
-                currentLoop.pop_back();
+                // so we can reconstruct the path from child to parent
+                storedPaths[neighbourVertex] = currentVertex;
+                vertexQueue.push_front({loopStartVertex, neighbourVertex});
             }
         }
 
@@ -218,13 +194,7 @@ std::pair<bool, std::vector<Vertex>> topsort(const Graph& G) {
   std::vector<Vertex> topologicalSort;
 
   // we fill our outputCounter with the number all edges that lead to that vertex
-  size_t outputCounter [vertexNum];
-
-//  std::cout << "INPUT GRAPH: " << G;
-
-  for (int i=0; i<vertexNum; i++) {
-      outputCounter[i] = 0;
-  }
+  vector<size_t> outputCounter(vertexNum, 0);
 
   for (Vertex vertex: G) {
       for (Vertex neighbourVertex: G[vertex]) {
@@ -233,7 +203,7 @@ std::pair<bool, std::vector<Vertex>> topsort(const Graph& G) {
   }
 
   // all vertexes that don't have an edge leading to it are pushed to queue (they're the first in topological order)
-  for (int i=0; i<vertexNum; i++) {
+  for (size_t i=0; i<vertexNum; i++) {
       if (outputCounter[i] == 0) {
           nextVertex.push(Vertex(i));
       }
@@ -261,7 +231,7 @@ std::pair<bool, std::vector<Vertex>> topsort(const Graph& G) {
 
   // if output counter is not 0, that means that we have a cycle. Vertices with non 0 are a cycle.
 
-  for (int i=0; i<vertexNum; i++) {
+  for (size_t i=0; i<vertexNum; i++) {
       if (outputCounter[i] != 0) {
           isLoop = true;
           break;
