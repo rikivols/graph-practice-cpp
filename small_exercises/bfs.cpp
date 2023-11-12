@@ -151,9 +151,7 @@ std::ostream& operator << (std::ostream& out, const Graph& G) {
 }
 
 #endif
-
 using namespace std;
-
 // - Arrays P and D have the correct size and are set to NO_VERTEX resp. NO_DISTANCE
 //   before calling bfs.
 // - Function bfs must set predecesor of u to ROOT.
@@ -163,7 +161,8 @@ size_t bfs(const Graph& G, Vertex u, std::vector<Vertex>& P, std::vector<size_t>
     queue<pair<Vertex, size_t>> qu;  // vertex, distance
     qu.push({u, 0});
     P[u] = ROOT;
-    size_t visitedNum = 0;
+    D[u] = 0;
+    size_t visitedNum = 1;
 
     while (!qu.empty()) {
         auto cur = qu.front();
@@ -172,7 +171,7 @@ size_t bfs(const Graph& G, Vertex u, std::vector<Vertex>& P, std::vector<size_t>
         qu.pop();
 
         for (Vertex neighbourVertex: G[curVertex]) {
-            if (P[neighbourVertex] != NO_VERTEX) {
+            if (P[neighbourVertex] == NO_VERTEX) {
                 visitedNum++;
                 P[neighbourVertex] = curVertex;
                 D[neighbourVertex] = distance + 1;
@@ -183,8 +182,6 @@ size_t bfs(const Graph& G, Vertex u, std::vector<Vertex>& P, std::vector<size_t>
 
     return visitedNum;
 }
-
-
 #ifndef __PROGTEST__
 
 const Graph SMALL_GRAPHS[] = {
@@ -298,8 +295,15 @@ void test_bfs(const Graph& G, Vertex u) {
 
 
 void run_tests() {
+    int i=0;
     std::cout << "Hardcoded graphs..." << std::endl;
-    for (const Graph& G : SMALL_GRAPHS) for (Vertex u : G) test_bfs(G, u);
+    for (const Graph& G : SMALL_GRAPHS) {
+        for (Vertex u : G) {
+            cout << i << endl;
+            test_bfs(G, u);
+            i++;
+        }
+    }
 
     RandomGraphGenerator rgg(53323);
     std::cout << "Small random graphs..." << std::endl;

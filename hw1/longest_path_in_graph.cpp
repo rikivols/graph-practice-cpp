@@ -130,7 +130,7 @@ void convertPathToGraph(const std::vector<Path>& all_paths, size_t maxVertices, 
 void storeDistances(const vector<Point> &topologicalSort, const vector<vector<Path>> &graphPaths,
                     vector<long> &distances, vector<Path> &previousPaths) {
     /*
-     * Pre-calculate longest distance for each vertex (how much it takes to get to it)
+     * Pre-calculate the longest distance for each vertex (how much it takes to get to it)
      */
 
     for (Point vertex: topologicalSort) {
