@@ -1,4 +1,3 @@
-#ifndef __PROGTEST__
 #include <algorithm>
 #include <array>
 #include <bitset>
@@ -36,7 +35,6 @@ struct Path {
   friend bool operator != (const Path& a, const Path& b) { return !(a == b); }
 };
 
-#endif
 
 std::ostream& operator << (std::ostream& out, const Path& p) {
     out << "from: " << p.from << " to: " << p.to << " length: " << p.length;
@@ -194,9 +192,6 @@ std::vector<Path> longest_track(size_t points, const std::vector<Path>& all_path
 };
 
 
-#ifndef __PROGTEST__
-
-
 struct Test {
   unsigned longest_track;
   size_t points;
@@ -246,7 +241,3 @@ int main() {
   if (!fail) printf("Passed all %i tests!\n", ok);
   else printf("Failed %u of %u tests.\n", fail, fail + ok);
 }
-
-#endif
-
-

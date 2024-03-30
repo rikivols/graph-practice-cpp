@@ -1,4 +1,4 @@
-#ifndef __PROGTEST__
+#ifndef __EVALUATION__
 #include <cassert>
 #include <iomanip>
 #include <cstdint>
@@ -56,9 +56,9 @@ public:
 
 class Employee_database {
 public:
-    explicit Employee_database(const vector<Employee>& boss) noexcept: employees(boss.size()), dynamic_table(boss.size()),
-                                                              cheapest_employee_gifts(boss.size(), {0, ULLONG_MAX}),
-                                                              second_cheapest_employee_gifts(boss.size(), {0, ULLONG_MAX})
+    explicit Employee_database(const vector<Employee>& boss) noexcept: employees(boss.size()),
+                                                                       cheapest_employee_gifts(boss.size(), {0, ULLONG_MAX}),
+                                                                       second_cheapest_employee_gifts(boss.size(), {0, ULLONG_MAX})
     {
         for (size_t i=0; i < boss.size(); i++) {
             Employee employee_boss = boss[i];
@@ -119,19 +119,14 @@ public:
      * @param gift_price vector containing all gift prices
      */
     void populate_gifts_table(const vector<pair<Price, Gift>> &sorted_prices) noexcept {
-        for (size_t i=0; i < dynamic_table.size(); i++) {
-            size_t max_size = min(employees[i].underlings.size() + 2, sorted_prices.size());
-            dynamic_table[i].resize(max_size, ULLONG_MAX);
-        }
 
         reverse(employees_topsorted.begin(), employees_topsorted.end());
 
         // row of the table, representing the employee, iterate in reverse topsort order, from underlings to bosses
         for (size_t i: employees_topsorted) {
-            size_t max_size = min(employees[i].underlings.size() + 2, sorted_prices.size());
 
             // column of the table, representing the gift
-            for (size_t j=0; j<max_size; j++) {
+            for (size_t j=0; j<sorted_prices.size(); j++) {
                 Price min_price_for_employee = sorted_prices[j].first;
 
                 for (Employee underling: employees[i].underlings) {
@@ -152,8 +147,6 @@ public:
                 else if (min_price_for_employee < second_cheapest_employee_gifts[i].price) {
                     second_cheapest_employee_gifts[i] = {j, min_price_for_employee};
                 }
-
-                dynamic_table[i][j] = min_price_for_employee;
             }
         }
     }
@@ -241,10 +234,9 @@ private:
     vector<Employee_relations> employees;
     // employee indexes sorted in a topsort order
     vector<Employee> employees_topsorted;
-    // employee * gift table, used for calculating pre-sums of the optimal gifts for each employee
-    vector<vector<Employee>> dynamic_table;
     // contains the cheapest possible gift for each employee (the lowest sum of all subordinate prices)
     vector<GiftPrice> cheapest_employee_gifts;
+
     // contains the second-cheapest possible gift for each employee
     vector<GiftPrice> second_cheapest_employee_gifts;
 
@@ -264,6 +256,26 @@ pair<Price, vector<Gift>> optimize_gifts(const vector<Employee> &boss, const vec
     }
     sort(sorted_prices.begin(), sorted_prices.end());
 
+    int sorted_prices_cut = 0;
+    Price last_element = ULLONG_MAX;
+    size_t total_new_elements = 0;
+
+    for (size_t i=0; i<sorted_prices.size(); i++) {
+        if (sorted_prices[i].first != last_element) {
+            total_new_elements++;
+            last_element = sorted_prices[i].first;
+            if (total_new_elements > 4) {
+                sorted_prices_cut = (int)i-1;
+            }
+        }
+    }
+    sorted_prices_cut = min(sorted_prices_cut, 6);
+
+    if (sorted_prices_cut != 0 and sorted_prices_cut < sorted_prices.size()) {
+        sorted_prices = vector<pair<Price, Gift>>(sorted_prices.begin(),
+                                                  sorted_prices.begin() + sorted_prices_cut);
+    }
+
     employee_database.populate_gifts_table(sorted_prices);
 
     pair<Price, vector<Gift>> picked_gifts;
@@ -274,7 +286,7 @@ pair<Price, vector<Gift>> optimize_gifts(const vector<Employee> &boss, const vec
     return picked_gifts;
 }
 
-#ifndef __PROGTEST__
+#ifndef __EVALUATION__
 
 const std::tuple<Price, std::vector<Employee>, std::vector<Price>> EXAMPLES[] = {
         { 17, {1,2,3,4,NO_EMPLOYEE}, {25,4,18,3} },
@@ -370,7 +382,7 @@ void speed_test2() {
     // Calculate the duration
     auto duration = chrono::duration_cast<std::chrono::microseconds>(stop - start);
 
-    std::cout << "Speedtest 1 took: " << duration.count() / 1000000.0 << " seconds" << endl;
+    std::cout << "Speedtest 2 took: " << duration.count() / 1000000.0 << " seconds" << endl;
 
 }
 

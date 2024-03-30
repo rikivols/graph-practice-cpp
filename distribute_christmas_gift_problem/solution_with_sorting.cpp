@@ -1,4 +1,3 @@
-#ifndef __PROGTEST__
 #include <cassert>
 #include <iomanip>
 #include <cstdint>
@@ -26,7 +25,6 @@ using Employee = size_t;
 inline constexpr Employee NO_EMPLOYEE = -1;
 using Gift = size_t;
 
-#endif
 
 using namespace std;
 
@@ -41,11 +39,11 @@ class Employee_relations {
 public:
     Employee_relations() = default;
 
-    void add_underling(Employee employee) {
+    void add_underling(Employee employee) noexcept {
         underlings.push_back(employee);
     }
 
-    [[nodiscard]] bool is_highest_boss() const {
+    [[nodiscard]] bool is_highest_boss() const noexcept {
         return boss == NO_EMPLOYEE;
     }
 
@@ -56,7 +54,7 @@ public:
 
 class Employee_database {
 public:
-    explicit Employee_database(const vector<Employee>& boss): employees(boss.size()), dynamic_table(boss.size()),
+    explicit Employee_database(const vector<Employee>& boss) noexcept: employees(boss.size()), dynamic_table(boss.size()),
                                                               cheapest_employee_gifts(boss.size(), {0, ULLONG_MAX}),
                                                               second_cheapest_employee_gifts(boss.size(), {0, ULLONG_MAX})
     {
@@ -75,7 +73,7 @@ public:
     /**
      * Returns employee ids with a topsort order
      */
-    void topsort_employees() {
+    void topsort_employees() noexcept {
         queue<Employee> next_vertex;
         size_t vertex_num = employees.size();
 
@@ -110,40 +108,7 @@ public:
                 }
             }
         }
-    }
 
-    /**
-     * Fills cell of the dynamic table representing gift price for the given employee with the
-     * minimal price of the employee subtree.
-     *
-     * In other words, each cell means what is the lowest sum of gifts for the whole employee tree if we
-     * picked a particular gift for the employee
-     */
-    void fill_dynamic_table_cell(size_t i, size_t j, const vector<Price> &gift_prices) {
-        // a cell of the dynamic table, minimal price of the sum of gifts from the root (current employee
-        // to the whole subtree
-        Price min_price_for_employee = gift_prices[j];
-
-        for (Employee underling: employees[i].underlings) {
-            // our boss already has that gift, pick the second-cheapest gift
-            if (cheapest_employee_gifts[underling].id == j) {
-                min_price_for_employee += second_cheapest_employee_gifts[underling].price;
-            }
-            else {
-                min_price_for_employee += cheapest_employee_gifts[underling].price;
-            }
-        }
-
-        // we found the new best gift for the employee
-        if (min_price_for_employee < cheapest_employee_gifts[i].price) {
-            second_cheapest_employee_gifts[i] = cheapest_employee_gifts[i];
-            cheapest_employee_gifts[i] = {j, min_price_for_employee};
-        }
-        else if (min_price_for_employee < second_cheapest_employee_gifts[i].price) {
-            second_cheapest_employee_gifts[i] = {j, min_price_for_employee};
-        }
-
-        dynamic_table[i][j] = min_price_for_employee;
     }
 
     /**
@@ -151,18 +116,45 @@ public:
      *
      * @param gift_price vector containing all gift prices
      */
-    void populate_gifts_table(const vector<Price> &gift_price) {
-        for (auto &vec : dynamic_table) {
-            vec.resize(gift_price.size(), ULLONG_MAX);
+    void populate_gifts_table(const vector<pair<Price, Gift>> &sorted_prices) noexcept {
+        for (size_t i=0; i < dynamic_table.size(); i++) {
+            size_t new_size = employees[i].underlings.size() + 2;
+            dynamic_table[i].resize(new_size, ULLONG_MAX);
         }
 
         reverse(employees_topsorted.begin(), employees_topsorted.end());
 
         // row of the table, representing the employee, iterate in reverse topsort order, from underlings to bosses
         for (size_t i: employees_topsorted) {
+            size_t max_size = employees[i].underlings.size() + 2;
             // column of the table, representing the gift
-            for (size_t j=0; j < gift_price.size(); j++) {
-                fill_dynamic_table_cell(i, j, gift_price);
+            for (size_t j=0; j<sorted_prices.size(); j++) {
+                Price min_price_for_employee = sorted_prices[j].first;
+
+                for (Employee underling: employees[i].underlings) {
+                    // our boss already has that gift, pick the second-cheapest gift
+                    if (cheapest_employee_gifts[underling].id == j) {
+                        min_price_for_employee += second_cheapest_employee_gifts[underling].price;
+                    }
+                    else {
+                        min_price_for_employee += cheapest_employee_gifts[underling].price;
+                    }
+                }
+
+                // we found the new best gift for the employee
+                if (min_price_for_employee < cheapest_employee_gifts[i].price) {
+                    second_cheapest_employee_gifts[i] = cheapest_employee_gifts[i];
+                    cheapest_employee_gifts[i] = {j, min_price_for_employee};
+                }
+                else if (min_price_for_employee < second_cheapest_employee_gifts[i].price) {
+                    second_cheapest_employee_gifts[i] = {j, min_price_for_employee};
+                }
+
+                dynamic_table[i][j] = min_price_for_employee;
+
+                if (j >= max_size - 1) {
+                    break;
+                }
             }
         }
     }
@@ -174,7 +166,7 @@ public:
      * @param last_gift what gift did the employee's boss have
      * @return
      */
-    Gift find_cheapest_gift(Employee employee_index, Gift last_gift) {
+    Gift find_cheapest_gift(Employee employee_index, Gift last_gift) noexcept {
         if (cheapest_employee_gifts[employee_index].id == last_gift) {
             return second_cheapest_employee_gifts[employee_index].id;
         }
@@ -191,7 +183,7 @@ public:
      * @return
      */
     Price depth_first_find_gifts(Employee employee_index, vector<Gift> &picked_gifts,
-                                 const vector<Price>& gift_prices) {
+                                 const vector<pair<Price, Gift>> &sorted_gifts) noexcept {
         stack<Employee> next_employees;
         next_employees.push(employee_index);
         Price all_gifts_price = 0;
@@ -209,7 +201,7 @@ public:
             Gift cheapest_gift = find_cheapest_gift(current_employee, boss_gift);
 
             picked_gifts[current_employee] = cheapest_gift;
-            all_gifts_price += gift_prices[cheapest_gift];
+            all_gifts_price += sorted_gifts[cheapest_gift].first;
 
             for (Employee underling: employees[current_employee].underlings) {
                 next_employees.push(underling);
@@ -226,13 +218,23 @@ public:
      * @param picked_gifts the final vector that we fill the picked gifts with
      * @param gift_prices vector containing all gift prices
      */
-    void pick_gifts(pair<Price, vector<Gift>> &picked_gifts, const vector<Price>& gift_prices) {
+    void pick_gifts(pair<Price, vector<Gift>> &picked_gifts, const vector<pair<Price, Gift>> &sorted_gifts) noexcept {
         picked_gifts.first = 0;
         picked_gifts.second.resize(employees.size(), 0);
 
         for (Employee employee_index: highest_bosses) {
-            Price price_together = depth_first_find_gifts(employee_index, picked_gifts.second, gift_prices);
+            Price price_together = depth_first_find_gifts(employee_index, picked_gifts.second, sorted_gifts);
             picked_gifts.first += price_together;
+        }
+    }
+
+    /*
+     * Now our result contains gifts that are sorted by their price. We need to restore their previous indexes
+     */
+    void recalculate_picked_gifts(pair<Price, vector<Gift>> &picked_gifts,
+                                  const vector<pair<Price, Gift>> &sorted_prices) noexcept {
+        for (Gift &i: picked_gifts.second) {
+            i = sorted_prices[i].second;
         }
     }
 private:
@@ -251,21 +253,28 @@ private:
 };
 
 
-pair<Price, vector<Gift>> optimize_gifts(const vector<Employee> &boss, const vector<Price> &gift_prices) {
+pair<Price, vector<Gift>> optimize_gifts(const vector<Employee> &boss, const vector<Price> &gift_prices) noexcept {
 
     Employee_database employee_database(boss);
 
     employee_database.topsort_employees();
 
-    employee_database.populate_gifts_table(gift_prices);
+    vector<pair<Price, Gift>> sorted_prices;
+    for (size_t i=0; i < gift_prices.size(); i++) {
+        sorted_prices.emplace_back(gift_prices[i], i);
+    }
+    sort(sorted_prices.begin(), sorted_prices.end());
+
+    employee_database.populate_gifts_table(sorted_prices);
 
     pair<Price, vector<Gift>> picked_gifts;
-    employee_database.pick_gifts(picked_gifts, gift_prices);
+    employee_database.pick_gifts(picked_gifts, sorted_prices);
+
+    employee_database.recalculate_picked_gifts(picked_gifts, sorted_prices);
 
     return picked_gifts;
 }
 
-#ifndef __PROGTEST__
 
 const std::tuple<Price, std::vector<Employee>, std::vector<Price>> EXAMPLES[] = {
         { 17, {1,2,3,4,NO_EMPLOYEE}, {25,4,18,3} },
@@ -273,7 +282,8 @@ const std::tuple<Price, std::vector<Employee>, std::vector<Price>> EXAMPLES[] = 
         { 17, {4,4,3,4,NO_EMPLOYEE}, {25,4,18,3} },
         { 24, {4,4,3,4,NO_EMPLOYEE,3,3}, {25,4,18,3} },
         { 18, {1,4,5,1,NO_EMPLOYEE,4,2,NO_EMPLOYEE,NO_EMPLOYEE}, {4, 8, 23, 99, 1, 8}},
-        { 23, {1,4,5,1,NO_EMPLOYEE,4,2,1,4,4}, {4, 8, 23, 99, 1, 8}}
+        { 23, {1,4,5,1,NO_EMPLOYEE,4,2,1,4,4}, {4, 8, 23, 99, 1, 8}},
+        { 27, {NO_EMPLOYEE,0,1,2,0,0,0,0,0,0,0,1,1,1,1,1,2,2,2,3,3,3,3}, {4, 8, 23, 99, 1, 8, 2, 2, 3,5,3,7,8}}
 };
 
 #define CHECK(cond, ...) do { \
@@ -314,7 +324,3 @@ int main() {
     if (!fail) printf("Passed all %d tests!\n", ok);
     else printf("Failed %d of %d tests.", fail, fail + ok);
 }
-
-#endif
-
-

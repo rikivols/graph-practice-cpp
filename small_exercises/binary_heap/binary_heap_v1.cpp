@@ -1,4 +1,3 @@
-#ifndef __PROGTEST__
 #include <cassert>
 #include <cstdarg>
 #include <iomanip>
@@ -38,13 +37,11 @@ std::string fmt(const char *f, ...) {
 }
 
 // We use std::multiset as a reference to check our implementation.
-// It is not available in progtest :)
+// It is not available in evaluation :)
 #include <set>
 
 // On the other hand, Link (as seen in the harder version of this task)
-// is still available in progtest.
-
-#endif
+// is still available in evaluation.
 
 using namespace std;
 
@@ -52,7 +49,7 @@ using namespace std;
 // TODO implement
 template < typename T, typename Comp = std::less<T> >
 struct BinaryHeap {
-    BinaryHeap() {};
+    BinaryHeap() = default;
 
     explicit BinaryHeap(Comp comp) {
         this->comp = comp;
@@ -66,15 +63,15 @@ struct BinaryHeap {
     };
 
     const T& min() const {
-        if (this->empty()) {
+        if (empty()) {
             throw out_of_range("");
         }
         return elements[0];
     };
 
-    void bubbleDown(size_t curIndex) {
+    void bubbleDown(size_t parentIndex) {
         while (true) {
-            size_t leftSon = (1 + curIndex) * 2 - 1;
+            size_t leftSon = (1 + parentIndex) * 2 - 1;
             size_t rightSon = leftSon + 1;
 
             // no more leafs
@@ -84,59 +81,84 @@ struct BinaryHeap {
 
             size_t smallestSon = leftSon;
             if (rightSon < elements.size()) {
-                if (comp(elements[rightSon]), comp(elements[leftSon])) {
+                if (comp(elements[rightSon], elements[leftSon])) {
                     smallestSon = rightSon;
                 }
             }
 
             // if son < than parent, swap
-            if (comp(elements[smallestSon], elements[curIndex])) {
-                size_t trash = elements[smallestSon];
-                elements[smallestSon] = elements[curIndex];
-                elements[curIndex] = e
+            if (comp(elements[smallestSon], elements[parentIndex])) {
+                swap(elements[smallestSon], elements[parentIndex]);
+                parentIndex = smallestSon;
+            }
+            else {
+                break;
+            }
+        }
+    }
+
+    void bubbleUp(size_t child_index) {
+        while (true) {
+            if (child_index == 0) {
+                break;
+            }
+            size_t parent = (child_index-1) / 2;
+
+            // if son < parent, swap
+            if (comp(elements[child_index], elements[parent])) {
+                swap(elements[child_index], elements[parent]);
+                child_index = parent;
+            }
+            else {
+                break;
+            }
+
+            if (child_index == 0) {
+                break;
             }
         }
     }
 
     T extract_min() {
-        T minElement = elements[0];
-
-        elements[0] = elements[elements.size() - 1];
-
-        size_t curIndex = 0;
-        while (true) {
-            size_t leftSon = (1 + curIndex) * 2 - 1;
-
-            size_t smallestSon = 0;
-
-            if ()
-
-            if (comp(elements[curIndex], elements[leftSon])) {
-                break;
-            }
-
+        if (empty()) {
+            throw out_of_range("");
         }
+
+        T minElement = std::move(elements[0]);
+
+        elements[0] = std::move(elements[elements.size() - 1]);
+        elements.pop_back();
+
+        bubbleDown(0);
 
         return minElement;
     };
 
-    void push(T val);
+    void push(T val) {
+        elements.push_back(std::move(val));
+
+        bubbleUp(elements.size() - 1);
+    };
 
     // Helpers to enable testing.
     struct TestHelper {
-        static const T& index_to_value(const BinaryHeap& H, size_t index);
+        static const T& index_to_value(const BinaryHeap& H, size_t index) {
+            return H.elements[index];
+        };
 
         static size_t root_index() { return 0; }
-        static size_t parent(size_t index);
-        static size_t child(size_t parent, size_t ith);
+        static size_t parent(size_t index) {
+            return (index-1) / 2;
+        };
+        static size_t child(size_t parent, size_t ith) {
+            return (parent + 1) * 2 - 1 + ith;
+        };
     };
 
     Comp comp;
     vector<T> elements;
 };
 
-
-#ifndef __PROGTEST__
 
 #define CHECK(cond, ...) do { \
     if (!(cond)) throw Error(fmt(__VA_ARGS__)); \
@@ -312,5 +334,3 @@ int main() {
         std::cout << "All tests passed." << std::endl;
     } catch (const TestFailed&) {}
 }
-
-#endif

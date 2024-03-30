@@ -1,4 +1,3 @@
-#ifndef __PROGTEST__
 #include <cassert>
 #include <iomanip>
 #include <cstdint>
@@ -18,8 +17,6 @@
 #include <queue>
 #include <random>
 #include <type_traits>
-
-#endif
 
 using namespace std;
 
@@ -544,8 +541,6 @@ struct TextEditorBackend {
 };
 
 
-#ifndef __PROGTEST__
-
 ////////////////// Dark magic, ignore ////////////////////////
 
 template < typename T >
@@ -699,7 +694,3 @@ int main() {
     if (!fail) std::cout << "Passed all " << ok << " tests!" << std::endl;
     else std::cout << "Failed " << fail << " of " << (ok + fail) << " tests." << std::endl;
 }
-
-#endif
-
-

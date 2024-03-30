@@ -1,4 +1,3 @@
-#ifndef __PROGTEST__
 #include <cassert>
 #include <iomanip>
 #include <cstdint>
@@ -25,8 +24,6 @@ using Price = unsigned long long;
 using Employee = size_t;
 inline constexpr Employee NO_EMPLOYEE = -1;
 using Gift = size_t;
-
-#endif
 
 using namespace std;
 
@@ -306,7 +303,6 @@ pair<Price, vector<Gift>> optimize_gifts(const vector<Employee>& boss, const vec
     return picked_gifts;
 }
 
-#ifndef __PROGTEST__
 
 const std::tuple<Price, std::vector<Employee>, std::vector<Price>> EXAMPLES[] = {
     { 17, {1,2,3,4,NO_EMPLOYEE}, {25,4,18,3} },
@@ -355,7 +351,3 @@ int main() {
   if (!fail) printf("Passed all %d tests!\n", ok);
   else printf("Failed %d of %d tests.", fail, fail + ok);
 }
-
-#endif
-
-

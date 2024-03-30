@@ -21,7 +21,6 @@
  * 
  */
 
-#ifndef __PROGTEST__
 #include <cassert>
 #include <cstdarg>
 #include <iomanip>
@@ -127,7 +126,6 @@ std::ostream& operator << (std::ostream& out, const Graph& G) {
   return out << "}}";
 }
 
-#endif
 
 using namespace std;
 
@@ -248,7 +246,6 @@ std::pair<bool, std::vector<Vertex>> topsort(const Graph& G) {
   return {true, topologicalSort};
 }
 
-#ifndef __PROGTEST__
 
 const Graph SMALL_DAGS[] = {
   {{ {1}, {2}, {3}, {4}, {} }},
@@ -407,7 +404,3 @@ int main() {
     std::cout << "All tests passed." << std::endl;
   } catch (const TestFailed&) {}
 }
-
-#endif
-
-

@@ -1,4 +1,4 @@
-#ifndef __PROGTEST__
+#ifndef __EVALUATION__
 #include <cassert>
 #include <cstdarg>
 #include <iomanip>
@@ -12,7 +12,7 @@
 #include <type_traits>
 
 // We use std::vector as a reference to check our implementation.
-// It is not available in progtest :)
+// It is not available in EVALUATION :)
 #include <vector>
 
 template < typename T >
@@ -425,7 +425,7 @@ struct Array {
 };
 
 
-#ifndef __PROGTEST__
+#ifndef __EVALUATION__
 
 struct TestFailed : std::runtime_error {
     using std::runtime_error::runtime_error;

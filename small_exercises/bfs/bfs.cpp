@@ -34,7 +34,6 @@
  *
  */
 
-#ifndef __PROGTEST__
 #include <cassert>
 #include <cstdarg>
 #include <iomanip>
@@ -150,7 +149,6 @@ std::ostream& operator << (std::ostream& out, const Graph& G) {
     return out << "} }";
 }
 
-#endif
 using namespace std;
 // - Arrays P and D have the correct size and are set to NO_VERTEX resp. NO_DISTANCE
 //   before calling bfs.
@@ -182,7 +180,7 @@ size_t bfs(const Graph& G, Vertex u, std::vector<Vertex>& P, std::vector<size_t>
 
     return visitedNum;
 }
-#ifndef __PROGTEST__
+#ifndef __EVALUATION__
 
 const Graph SMALL_GRAPHS[] = {
         { false, { {1}, {2}, {3}, {4}, {} } },
@@ -338,7 +336,3 @@ int main() {
         std::cout << "All tests passed." << std::endl;
     } catch (const TestFailed&) {}
 }
-
-#endif
-
-
